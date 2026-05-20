@@ -5,35 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PromptEdit — A grocery store for AI</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            ink:   { DEFAULT: '#0A0A0A', 900: '#0A0A0A', 800: '#1A1A1A', 700: '#2B2B2B' },
-            paper: { DEFAULT: '#FFFFFF', 50: '#FAFAFA', 100: '#F4F4F4', 200: '#EAEAEA' },
-            mute:  { 500: '#737373', 400: '#A3A3A3', 300: '#D4D4D4' },
-          },
-          fontFamily: {
-            sans:    ['Cabinet Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-            display: ['Supreme', 'Cabinet Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-          },
-          borderRadius: {
-            'xs': '6px', 'sm': '10px', 'md': '14px',
-            'lg': '20px', 'xl': '28px', '2xl': '36px', 'pill': '999px',
-          },
-          boxShadow: {
-            'soft': '0 1px 2px rgba(10,10,10,0.04), 0 4px 12px rgba(10,10,10,0.04)',
-            'card': '0 1px 3px rgba(10,10,10,0.06), 0 8px 24px rgba(10,10,10,0.06)',
-          },
-        },
-      },
-    };
-  </script>
+  <!-- Pre-built Tailwind CSS (rebuild with: tailwindcss.exe -c tailwind.config.js -i tailwind-input.css -o tailwind.css --minify) -->
+  <link rel="stylesheet" href="tailwind.css" />
   <link rel="preconnect" href="https://api.fontshare.com" />
   <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
-  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@200,300,400,500,700,800,900&f[]=supreme@100,200,300,400,500,700,800&display=swap" rel="stylesheet" />
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&f[]=supreme@400,500,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <style>
     html.lenis, html.lenis body { height: auto; }
@@ -53,13 +29,36 @@
     .magnetic { display: inline-flex; will-change: transform; }
     .magnetic-inner { display: inline-flex; will-change: transform; }
 
-    /* Reveal helpers */
-    [data-mask] { display: inline-block; overflow: hidden; vertical-align: bottom; }
-    [data-mask] > .mask-inner { display: inline-block; will-change: transform; }
-
     /* Tool video iframes: invisible until they finish loading, then fade in over the poster */
     [data-tools-video] { opacity: 0; transition: opacity 600ms ease; }
     [data-tools-video].is-loaded { opacity: 1; }
+
+    /* Hardware-accelerate the horizontal scroll track and isolate its repaints */
+    [data-tools-track] {
+      will-change: transform;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    /* Each panel paints on its own layer so off-screen panels don't drag down the visible one */
+    [data-tools-track] > [data-panel] {
+      contain: layout paint style;
+      transform: translateZ(0);
+    }
+    /* Video tiles get their own compositing layer to keep iframe repaints cheap */
+    [data-tools-track] [data-tools-video],
+    [data-tools-track] [data-panel] .aspect-video {
+      contain: layout paint;
+      transform: translateZ(0);
+    }
+
+    /* Templates gallery: isolate paints between hidden/visible panels so toggling
+       a tab doesn't reflow the whole section. */
+    #tpl-gallery .tpl-panel {
+      contain: layout paint style;
+    }
+    #tpl-gallery .tpl-panel iframe {
+      contain: layout paint;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
@@ -76,6 +75,7 @@
       data-hero-video
       class="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none will-change-transform origin-center"
       src="https://cdn.midjourney.com/video/204a7ca6-e598-486f-ac87-acba5c5a38fc/3.mp4"
+      poster="https://cdn.midjourney.com/5ceb618c-7109-4211-9061-8d118eae36ea/0_0.png"
       autoplay muted loop playsinline
     ></video>
 
@@ -89,15 +89,15 @@
             class="h-full"
           />
         </a>
-        <nav class="hidden md:flex items-center gap-8 text-smm text-mute-400">
+        <nav class="hidden md:flex items-center gap-8 text-sm text-mute-400">
           <a href="#tools" class="hover:text-paper transition">Tools</a>
           <a href="#templates" class="hover:text-paper transition">Templates</a>
           <a href="#pricing" class="hover:text-paper transition">Pricing</a>
           <a href="#faq" class="hover:text-paper transition">FAQ</a>
         </nav>
         <div class="flex items-center gap-3">
-          <a href="#" class="hidden sm:inline text-smm text-mute-400 hover:text-paper transition">Login</a>
-          <a href="#pricing" class="px-4 py-2 rounded-pill bg-paper text-ink text-smm font-medium hover:bg-paper-100 transition">Get started</a>
+          <a href="#" class="hidden sm:inline text-sm text-mute-400 hover:text-paper transition">Login</a>
+          <a href="#pricing" class="px-4 py-2 rounded-pill bg-paper text-ink text-sm font-medium hover:bg-paper-100 transition">Get started</a>
         </div>
       </div>
     </header>
@@ -112,7 +112,7 @@
       <div class="relative max-w-6xl mx-auto px-6 pt-24 pb-28">
         <div class="grid lg:grid-cols-12 gap-10 items-center">
           <div class="lg:col-span-7">
-            <span data-hero="badge" class="inline-flex items-center gap-2 px-3 py-1 rounded-pill border border-paper/20 bg-ink/30 backdrop-blur text-s text-paper">
+            <span data-hero="badge" class="inline-flex items-center gap-2 px-3 py-1 rounded-pill border border-paper/20 bg-ink/30 backdrop-blur text-sm text-paper">
               <span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>
               New · Pay-as-you-go AI credits
             </span>
@@ -131,7 +131,7 @@
                 <span class="magnetic-inner">See the tools</span>
               </a>
             </div>
-            <div data-hero="trust" class="mt-8 flex flex-wrap items-center gap-6 text-smm text-mute-300">
+            <div data-hero="trust" class="mt-8 flex flex-wrap items-center gap-6 text-sm text-mute-300">
               <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>30-day money-back</span>
               <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>Cancel anytime</span>
               <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>Commercial license</span>
@@ -148,7 +148,7 @@
               />
             </div>
             <div class="rounded-xl bg-ink/60 border border-paper/15 backdrop-blur shadow-card p-4 hidden md:block">
-              <div class="text-s text-mute-300 uppercase tracking-widest">Credits balance</div>
+              <div class="text-sm text-mute-300 uppercase tracking-widest">Credits balance</div>
               <div class="mt-1 text-2xl font-semibold text-paper"><span data-count="110" data-count-prefix="$" data-count-suffix=".00">$110.00</span></div>
               <div class="mt-2 h-1.5 rounded-pill bg-paper/20 overflow-hidden">
                 <div data-hero-bar class="h-full w-3/4 bg-paper origin-left"></div>
@@ -162,7 +162,7 @@
     <!-- ── TRUSTED BY ── -->
     <section class="relative z-20">
       <div class="relative max-w-6xl mx-auto px-6 py-12">
-        <p class="text-center text-s uppercase tracking-widest text-mute-400 mb-6">Trusted by creators worldwide</p>
+        <p class="text-center text-sm uppercase tracking-widest text-mute-400 mb-6">Trusted by creators worldwide</p>
         <div class="marquee">
           <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/3f41f0-7e0d-a40c-b4f5-bd301788e3d0_Trusted_By_PE_.png" alt="Trusted by" class="w-full max-w-4xl mx-auto opacity-80" />
         </div>
@@ -175,7 +175,7 @@
   <section class="bg-paper">
     <div class="max-w-6xl mx-auto px-6 py-24">
       <div class="max-w-2xl mb-12">
-        <p class="text-s uppercase tracking-widest text-neutral-800 mb-3">The shift</p>
+        <p class="text-sm uppercase tracking-widest text-neutral-800 mb-3">The shift</p>
         <h2 class="text-4xl md:text-5xl font-semibold tracking-tight text-ink">Stop juggling subscriptions.</h2>
         <p class="mt-4 text-lg text-neutral-800">
           Most creators pay for tools they barely use. PromptEdit collapses every AI service
@@ -185,8 +185,8 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div class="group rounded-2xl p-3 text-paper transition-all duration-500 hover:-translate-y-1">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-smm uppercase tracking-widest text-neutral-800">Before</span>
-            <span class="px-2 py-1 rounded-pill bg-neutral-300 text-smm text-ink">Fragmented</span>
+            <span class="text-sm uppercase tracking-widest text-neutral-800">Before</span>
+            <span class="px-2 py-1 rounded-pill bg-neutral-300 text-sm text-ink">Fragmented</span>
           </div>
           <div class="overflow-hidden rounded-xl">
             <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/821c2a-37e6-8b-b36-c8bad0746f1_Before_promptedit_copy.png" alt="Before PromptEdit" class="w-full scale-95 transition-all duration-700 ease-out group-hover:scale-105 group-hover:brightness-110 group-hover:saturate-150" />
@@ -194,8 +194,8 @@
         </div>
         <div class="group rounded-2xl p-3 text-paper transition-all duration-500 hover:-translate-y-1">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-smm uppercase tracking-widest text-neutral-800">After</span>
-            <span class="px-2 py-1 rounded-pill bg-neutral-300 text-ink text-smm">One marketplace</span>
+            <span class="text-sm uppercase tracking-widest text-neutral-800">After</span>
+            <span class="px-2 py-1 rounded-pill bg-neutral-300 text-ink text-sm">One marketplace</span>
           </div>
           <div class="overflow-hidden rounded-xl">
             <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/c6cb82f-c0-1f2-b48-2eec5ff2d80d_After_promptedit_copy.png" alt="After PromptEdit" class="w-full scale-95 transition-all duration-700 ease-out group-hover:scale-105 group-hover:brightness-110 group-hover:saturate-150" />
@@ -214,10 +214,10 @@
         <div class="max-w-6xl mx-auto px-6 pt-12 md:pt-20">
           <div class="flex items-end justify-between flex-wrap gap-4 pointer-events-auto">
             <div>
-              <p class="text-s uppercase tracking-widest text-mute-200 mb-3">The marketplace</p>
+              <p class="text-sm uppercase tracking-widest text-mute-200 mb-3">The marketplace</p>
               <h2 class="text-3xl md:text-5xl font-semibold tracking-tight">Every tool. One checkout.</h2>
             </div>
-            <div class="flex items-center gap-3 text-s text-mute-500">
+            <div class="flex items-center gap-3 text-sm text-mute-500">
               <span data-tools-current class="font-mono text-ink">01</span>
               <div class="w-32 md:w-48 h-px bg-paper-200 relative">
                 <div data-tools-bar class="absolute -inset-y-[1px] left-0 h-[3px] bg-ink transition-[width] duration-300" style="width:25%"></div>
@@ -247,7 +247,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/03a0dffe1ce7befb12190779e46c532de8d0ce6f.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/6ugrp949dp?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Clones"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">AI Clones</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">AI Clones</p>
                     </div>
                   </div>
 
@@ -255,7 +255,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/07899d9f389dcd488a18f1ad25a0324795d02d78.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/5bzldtmz36?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Social Media Posts"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Social Media Posts</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Social Media Posts</p>
                     </div>
                   </div>
 
@@ -263,7 +263,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/862cd638153572251fee0dced4671398bb7cfa6c.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/kvqvjrid9z?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Graphic Design"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Graphic Design</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Graphic Design</p>
                     </div>
                   </div>
 
@@ -271,7 +271,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/3338a0066c6741c886085cca3d318687129987ed.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/72zakh7jbf?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Image Editing"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Image Editing</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Image Editing</p>
                     </div>
                   </div>
 
@@ -279,7 +279,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/718230370e46300dc4ca1c8c2c3ab7f753782edf.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/yrq89m8ns0?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="YouTube Thumbnails"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">YouTube Thumbnails</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">YouTube Thumbnails</p>
                     </div>
                   </div>
 
@@ -287,7 +287,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/4a12d5370b0e698ddc2f5c786bd5d98cf4da17b4.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/cypx73wu36?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Online Ads"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Online Ads</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Online Ads</p>
                     </div>
                   </div>
 
@@ -313,7 +313,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/71faa554636db18800845e20e4d6ac0334615598.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/v39qn2mla0?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Clone Videos"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Clone Videos</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Clone Videos</p>
                     </div>
                   </div>
 
@@ -321,7 +321,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/4698dda4ea29cd6d1f1274e009b084d7845b11bb.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/qx4qain2eg?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Visual Effects"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Visual Effects</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Visual Effects</p>
                     </div>
                   </div>
 
@@ -329,7 +329,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/ddbfeddbec8f3c0dc6f60e80d1e5a099cb0e51c6.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/3rllmh5doc?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Cinematic Films"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Cinematic Films</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Cinematic Films</p>
                     </div>
                   </div>
 
@@ -337,7 +337,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/b110ed999fcfb57b1c1bd9818daf1e9b4226b02f.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/1muopqfwh6?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Video Ads"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Video Ads</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Video Ads</p>
                     </div>
                   </div>
 
@@ -345,7 +345,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/cd1090f3a99b05c6f01a40f9118245b97cb387df.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/fq2zoz36cz?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Reels & TikToks"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Reels &amp; TikToks</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Reels &amp; TikToks</p>
                     </div>
                   </div>
 
@@ -353,7 +353,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/6092ac0dd155b243cf4f00848cb25c8cf142bd75.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/8nri26so0p?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="YouTube Videos"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">YouTube Videos</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">YouTube Videos</p>
                     </div>
                   </div>
 
@@ -379,7 +379,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/f67dbd9c93c0e6fe6558167fc9e50a93.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/rsh692c710?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Voiceovers"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">AI Voiceovers</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">AI Voiceovers</p>
                     </div>
                   </div>
 
@@ -387,7 +387,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/4541f5cc8e6c9e6156b454d272cd4264.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/rusyskd1ox?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Voice Clones"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">AI Voice Clones</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">AI Voice Clones</p>
                     </div>
                   </div>
 
@@ -395,7 +395,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/05b35e11964d9e59a30c48d00257b965.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/x6w5dao4h0?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Voice Swaps"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">Voice Swaps</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">Voice Swaps</p>
                     </div>
                   </div>
 
@@ -403,7 +403,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/7d3087ee8effee2a51be8d803f7c25f1.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/0yhtigj9mg?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Sound Effects"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">AI Sound Effects</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">AI Sound Effects</p>
                     </div>
                   </div>
 
@@ -411,7 +411,7 @@
                     <img src="https://embed-ssl.wistia.com/deliveries/6228a93e2476bc163caba1eeb3c0dd99.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
                     <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/81m386dh7h?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Music Generation"></iframe>
                     <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
-                      <p class="text-s md:text-smm font-medium text-paper">AI Music Generation</p>
+                      <p class="text-sm md:text-sm font-medium text-paper">AI Music Generation</p>
                     </div>
                   </div>
 
@@ -429,13 +429,7 @@
                 <div class="text-7xl md:text-[8rem] font-semibold text-ink leading-none mb-2">04</div>
                 <h3 class="text-3xl md:text-5xl font-semibold tracking-tight mb-2">AI Editing Plugins</h3>
                 <p class="text-base md:text-lg text-mute-400 mb-4">Access AI tools inside your editing software.</p>
-                <p class="text-smm md:text-base text-mute-200 max-w-md mb-6">No need to open a browser. The plugins live inside your favorite NLE — generate AI creations and drop them straight into the timeline.</p>
-                <div class="flex flex-wrap gap-2 max-w-md">
-                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">Premiere Pro</div>
-                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">Final Cut Pro</div>
-                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">DaVinci Resolve</div>
-                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">After Effects</div>
-                </div>
+                <p class="text-sm md:text-base text-mute-200 max-w-md mb-6">No need to open a browser. The plugins live inside your favorite NLE — generate AI creations and drop them straight into the timeline.</p>
               </div>
               <div class="lg:col-span-6">
                 <div class="relative aspect-video overflow-hidden rounded-2xl border border-neutral-700 bg-ink">
@@ -450,7 +444,7 @@
       </div>
 
       <!-- Scroll hint -->
-      <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 text-s text-mute-400 flex items-center gap-2 pointer-events-none">
+      <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 text-sm text-mute-400 flex items-center gap-2 pointer-events-none">
         <span>Scroll to explore</span>
         <span aria-hidden="true">→</span>
       </div>
@@ -470,8 +464,24 @@
       var bar = document.querySelector('[data-tools-bar]');
       if (!panels.length) return;
 
-      // Lazy-load the video panel iframes once the section approaches viewport
-      var lazyIframes = document.querySelectorAll('[data-tools-video][data-src]');
+      // Group lazy-loadable iframes per panel so we can stagger their loading.
+      // Loading 20+ Wistia iframes at once was the main cause of lag.
+      var panelVideos = panels.map(function (panel) {
+        return Array.prototype.slice.call(panel.querySelectorAll('[data-tools-video][data-src]'));
+      });
+      var loadedPanels = Object.create(null);
+
+      function loadPanelVideos(idx) {
+        if (idx < 0 || idx >= panels.length || loadedPanels[idx]) return;
+        loadedPanels[idx] = true;
+        (panelVideos[idx] || []).forEach(function (f) {
+          if (f.dataset.src && (!f.src || f.src === 'about:blank')) {
+            f.addEventListener('load', function () { f.classList.add('is-loaded'); }, { once: true });
+            f.src = f.dataset.src;
+          }
+        });
+      }
+
       // Fade in iframes that don't need lazy-loading once they finish their initial load
       document.querySelectorAll('[data-tools-video]:not([data-src])').forEach(function (f) {
         f.addEventListener('load', function () { f.classList.add('is-loaded'); }, { once: true });
@@ -479,18 +489,13 @@
           f.classList.add('is-loaded');
         }
       });
+
+      // Load only panel 1 when section approaches viewport
       ScrollTrigger.create({
         trigger: trigger,
         start: 'top bottom',
         once: true,
-        onEnter: function () {
-          lazyIframes.forEach(function (f) {
-            if (f.dataset.src && (!f.src || f.src === 'about:blank')) {
-              f.addEventListener('load', function () { f.classList.add('is-loaded'); }, { once: true });
-              f.src = f.dataset.src;
-            }
-          });
-        }
+        onEnter: function () { loadPanelVideos(0); }
       });
 
       gsap.to(track, {
@@ -504,9 +509,13 @@
           scrub: 1,
           invalidateOnRefresh: true,
           onUpdate: function (self) {
-            var idx = Math.min(panels.length - 1, Math.round(self.progress * (panels.length - 1)));
+            var raw = self.progress * (panels.length - 1);
+            var idx = Math.min(panels.length - 1, Math.round(raw));
             if (current) current.textContent = String(idx + 1).padStart(2, '0');
             if (bar) bar.style.width = ((idx + 1) / panels.length * 100) + '%';
+            // Preload current + next panel videos as user scrolls through
+            loadPanelVideos(idx);
+            loadPanelVideos(Math.min(panels.length - 1, idx + 1));
           }
         }
       });
@@ -517,7 +526,7 @@
   <section id="pricing" class="bg-neutral-800">
     <div class="max-w-6xl mx-auto px-6 py-24">
       <div class="max-w-2xl mx-auto text-center mb-14">
-        <p class="text-s uppercase tracking-widest text-neutral-400 mb-3">Pricing</p>
+        <p class="text-sm uppercase tracking-widest text-neutral-400 mb-3">Pricing</p>
         <h2 class="text-4xl md:text-5xl font-semibold tracking-tight text-paper">Two simple ways in.</h2>
         <p class="mt-4 text-lg text-neutral-300">Top up once, or subscribe for a permanent credit boost plus the Templates Library.</p>
       </div>
@@ -526,14 +535,14 @@
         <div class="rounded-2xl border border-neutral-700 bg-neutral-900 text-paper p-8 flex flex-col">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold">One-time top-up</h3>
-            <span class="px-2 py-1 rounded-pill bg-neutral-700 text-s text-neutral-300">Pay once</span>
+            <span class="px-2 py-1 rounded-pill bg-neutral-700 text-sm text-neutral-300">Pay once</span>
           </div>
           <div class="flex items-baseline gap-2">
             <span class="text-5xl font-semibold tracking-tight">$98</span>
             <span class="text-neutral-400">one-time</span>
           </div>
           <p class="mt-2 text-neutral-300">Get <span class="text-paper font-medium">$110</span> in credits — a 10% bonus.</p>
-          <ul class="mt-6 space-y-3 text-smm flex-1">
+          <ul class="mt-6 space-y-3 text-sm flex-1">
             <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-neutral-500"></span>Access to every AI tool on the marketplace</li>
             <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-neutral-500"></span>No subscription, no recurring charge</li>
             <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-neutral-500"></span>Credits never expire</li>
@@ -544,17 +553,17 @@
         </div>
 
         <div class="rounded-2xl bg-paper text-ink p-8 relative shadow-card flex flex-col">
-          <span class="absolute -top-3 left-8 px-3 py-1 rounded-pill bg-ink text-paper text-s font-medium">Most popular</span>
+          <span class="absolute -top-3 left-8 px-3 py-1 rounded-pill bg-ink text-paper text-sm font-medium">Most popular</span>
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold">Monthly subscription</h3>
-            <span class="px-2 py-1 rounded-pill bg-paper-100 text-ink text-s">+20% lifetime</span>
+            <span class="px-2 py-1 rounded-pill bg-paper-100 text-ink text-sm">+20% lifetime</span>
           </div>
           <div class="flex items-baseline gap-2">
             <span class="text-5xl font-semibold tracking-tight">$39</span>
             <span class="text-mute-500">/month</span>
           </div>
           <p class="mt-2 text-mute-500">$49 in credits every month + 20% lifetime credit boost.</p>
-          <ul class="mt-6 space-y-3 text-smm flex-1">
+          <ul class="mt-6 space-y-3 text-sm flex-1">
             <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-ink"></span>Everything in the one-time plan</li>
             <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-ink"></span>Full Content Creator Templates Library</li>
             <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-ink"></span>Faster generation & multi-generation</li>
@@ -574,7 +583,7 @@
     <div class="max-w-6xl mx-auto px-6 py-12">
       <div class="grid lg:grid-cols-12 gap-10 items-end mb-14">
         <div class="lg:col-span-7">
-          <p class="text-s uppercase tracking-widest text-mute-500 mb-3">Included with monthly</p>
+          <p class="text-sm uppercase tracking-widest text-mute-500 mb-3">Included with monthly</p>
           <h2 class="text-4xl md:text-5xl font-semibold tracking-tight">The Content Creator Templates Library.</h2>
         </div>
         <div class="lg:col-span-5">
@@ -585,23 +594,23 @@
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-12" data-stagger>
         <div class="rounded-xl border border-paper-200 bg-paper p-5">
           <div class="text-3xl font-semibold tracking-tight"><span data-count="4000" data-count-format="comma">4,000</span><span class="text-mute-500">+</span></div>
-          <div class="text-smm text-mute-500 mt-1">LUTs</div>
+          <div class="text-sm text-mute-500 mt-1">LUTs</div>
         </div>
         <div class="rounded-xl border border-paper-200 bg-paper p-5">
           <div class="text-3xl font-semibold tracking-tight"><span data-count="60" data-count-suffix="K">60K</span><span class="text-mute-500">+</span></div>
-          <div class="text-smm text-mute-500 mt-1">Sound effects</div>
+          <div class="text-sm text-mute-500 mt-1">Sound effects</div>
         </div>
         <div class="rounded-xl border border-paper-200 bg-paper p-5">
           <div class="text-3xl font-semibold tracking-tight"><span data-count="3000" data-count-format="comma">3,000</span><span class="text-mute-500">+</span></div>
-          <div class="text-smm text-mute-500 mt-1">Text animations</div>
+          <div class="text-sm text-mute-500 mt-1">Text animations</div>
         </div>
         <div class="rounded-xl border border-paper-200 bg-paper p-5">
           <div class="text-3xl font-semibold tracking-tight"><span data-count="2000" data-count-format="comma">2,000</span><span class="text-mute-500">+</span></div>
-          <div class="text-smm text-mute-500 mt-1">Overlays</div>
+          <div class="text-sm text-mute-500 mt-1">Overlays</div>
         </div>
         <div class="rounded-xl border border-paper-200 bg-paper p-5 col-span-2 md:col-span-1">
           <div class="text-3xl font-semibold tracking-tight"><span data-count="5000" data-count-format="comma">5,000</span><span class="text-mute-500">+</span></div>
-          <div class="text-smm text-mute-500 mt-1">Backgrounds</div>
+          <div class="text-sm text-mute-500 mt-1">Backgrounds</div>
         </div>
       </div>
 
@@ -609,15 +618,15 @@
       <div id="tpl-gallery" class="p-6" data-interval="6000">
         <!-- Tab bar -->
         <div class="flex flex-wrap items-center gap-2 mb-6" role="tablist">
-          <button type="button" data-tab="luts" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">LUTs <span class="text-mute-400 ml-1">4,000+</span></button>
-          <button type="button" data-tab="sfx" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Sound effects <span class="text-mute-500 ml-1">60K+</span></button>
-          <button type="button" data-tab="text" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Text animations <span class="text-mute-500 ml-1">3,000+</span></button>
-          <button type="button" data-tab="overlays" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition bg-ink text-paper" aria-selected="true">Overlays <span class="text-mute-500 ml-1">2,000+</span></button>
-          <button type="button" data-tab="bg" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Backgrounds <span class="text-mute-500 ml-1">5,000+</span></button>
+          <button type="button" data-tab="luts" class="tpl-tab px-4 py-2 rounded-pill text-sm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">LUTs <span class="text-mute-400 ml-1">4,000+</span></button>
+          <button type="button" data-tab="sfx" class="tpl-tab px-4 py-2 rounded-pill text-sm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Sound effects <span class="text-mute-500 ml-1">60K+</span></button>
+          <button type="button" data-tab="text" class="tpl-tab px-4 py-2 rounded-pill text-sm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Text animations <span class="text-mute-500 ml-1">3,000+</span></button>
+          <button type="button" data-tab="overlays" class="tpl-tab px-4 py-2 rounded-pill text-sm font-medium transition bg-ink text-paper" aria-selected="true">Overlays <span class="text-mute-500 ml-1">2,000+</span></button>
+          <button type="button" data-tab="bg" class="tpl-tab px-4 py-2 rounded-pill text-sm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Backgrounds <span class="text-mute-500 ml-1">5,000+</span></button>
 
           <!-- Progress bar -->
           <div class="ml-auto hidden sm:flex items-center gap-3">
-            <span id="tpl-status" class="text-s text-mute-500">Paused</span>
+            <span id="tpl-status" class="text-sm text-mute-500">Paused</span>
             <div class="w-24 h-1 rounded-pill bg-paper-200 overflow-hidden">
               <div id="tpl-progress" class="h-full w-0 bg-ink transition-[width] duration-100 ease-linear" style="width: 100%;"></div>
             </div>
@@ -630,12 +639,13 @@
             <div class="flex items-end justify-between mb-4">
               <div>
                 <h3 class="text-xl font-semibold">LUTs · Color presets</h3>
-                <p class="text-smm text-mute-500 mt-1">Drag-and-drop cinematic color in one click.</p>
+                <p class="text-sm text-mute-500 mt-1">Drag-and-drop cinematic color in one click.</p>
               </div>
-              <span class="text-s text-mute-500 hidden sm:inline">4,000+ presets</span>
+              <span class="text-sm text-mute-500 hidden sm:inline">4,000+ presets</span>
             </div>
             <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
               <!-- LUTs preview · Wistia ID: t21vfpbv9s -->
+              <img src="https://embed-ssl.wistia.com/deliveries/b399bdd4d4bcccb0a2369d5d034843bcc5f713fe.jpg?image_crop_resized=960x270" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               <iframe
                 data-wistia-id="t21vfpbv9s"
                 data-src="https://fast.wistia.net/embed/iframe/t21vfpbv9s?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
@@ -656,12 +666,13 @@
             <div class="flex items-end justify-between mb-4">
               <div>
                 <h3 class="text-xl font-semibold">Sound effects</h3>
-                <p class="text-smm text-mute-500 mt-1">Cinematic SFX, foley, transitions, risers, drops.</p>
+                <p class="text-sm text-mute-500 mt-1">Cinematic SFX, foley, transitions, risers, drops.</p>
               </div>
-              <span class="text-s text-mute-500 hidden sm:inline">60K+ samples</span>
+              <span class="text-sm text-mute-500 hidden sm:inline">60K+ samples</span>
             </div>
             <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-6">
               <!-- Sound effects preview · Wistia ID: ucv3bj2w6o -->
+              <img src="https://embed-ssl.wistia.com/deliveries/57cb867d7a2e5b7cd26e2c5352e678b46243e31d.jpg?image_crop_resized=960x270" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               <iframe
                 data-wistia-id="ucv3bj2w6o"
                 data-src="https://fast.wistia.net/embed/iframe/ucv3bj2w6o?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
@@ -675,31 +686,31 @@
             </div>
 
             <!-- Listen to some of our sounds -->
-            <p class="text-smm font-medium text-mute-500 uppercase tracking-widest mb-4">Listen to some of our sounds</p>
+            <p class="text-sm font-medium text-mute-500 uppercase tracking-widest mb-4">Listen to some of our sounds</p>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
 
               <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
-                <iframe src="https://fast.wistia.net/embed/iframe/2ve4xlevtb?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+                <iframe data-src="https://fast.wistia.net/embed/iframe/2ve4xlevtb?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" loading="lazy" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
               </div>
 
               <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
-                <iframe src="https://fast.wistia.net/embed/iframe/m4foab6mu6?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+                <iframe data-src="https://fast.wistia.net/embed/iframe/m4foab6mu6?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" loading="lazy" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
               </div>
 
               <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
-                <iframe src="https://fast.wistia.net/embed/iframe/1zkz745vsy?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+                <iframe data-src="https://fast.wistia.net/embed/iframe/1zkz745vsy?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" loading="lazy" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
               </div>
 
               <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
-                <iframe src="https://fast.wistia.net/embed/iframe/88wnd1t5pj?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+                <iframe data-src="https://fast.wistia.net/embed/iframe/88wnd1t5pj?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" loading="lazy" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
               </div>
 
               <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
-                <iframe src="https://fast.wistia.net/embed/iframe/5vsrw5dx7r?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+                <iframe data-src="https://fast.wistia.net/embed/iframe/5vsrw5dx7r?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" loading="lazy" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
               </div>
 
               <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
-                <iframe src="https://fast.wistia.net/embed/iframe/k1okxdkoqv?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+                <iframe data-src="https://fast.wistia.net/embed/iframe/k1okxdkoqv?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" loading="lazy" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
               </div>
 
             </div>
@@ -709,12 +720,13 @@
             <div class="flex items-end justify-between mb-4">
               <div>
                 <h3 class="text-xl font-semibold">Text animations</h3>
-                <p class="text-smm text-mute-500 mt-1">Scroll-stopping title templates, ready to drop in.</p>
+                <p class="text-sm text-mute-500 mt-1">Scroll-stopping title templates, ready to drop in.</p>
               </div>
-              <span class="text-s text-mute-500 hidden sm:inline">3,000+ designs</span>
+              <span class="text-sm text-mute-500 hidden sm:inline">3,000+ designs</span>
             </div>
             <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
               <!-- Text animations preview · Wistia ID: lgoc5cbukb -->
+              <img src="https://embed-ssl.wistia.com/deliveries/8dab1dde6c66ad46f733a48eb9ceacbba364264a.jpg?image_crop_resized=960x270" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               <iframe
                 data-wistia-id="lgoc5cbukb"
                 data-src="https://fast.wistia.net/embed/iframe/lgoc5cbukb?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
@@ -735,12 +747,13 @@
             <div class="flex items-end justify-between mb-4">
               <div>
                 <h3 class="text-xl font-semibold">Overlays</h3>
-                <p class="text-smm text-mute-500 mt-1">Trendy textures, light leaks, vintage grain.</p>
+                <p class="text-sm text-mute-500 mt-1">Trendy textures, light leaks, vintage grain.</p>
               </div>
-              <span class="text-s text-mute-500 hidden sm:inline">2,000+ packs</span>
+              <span class="text-sm text-mute-500 hidden sm:inline">2,000+ packs</span>
             </div>
             <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
               <!-- Overlays preview · Wistia ID: 0ktyx14pqx -->
+              <img src="https://embed-ssl.wistia.com/deliveries/5b77f4765dbae68f7329382fa5afbd44796324f4.jpg?image_crop_resized=960x270" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               <iframe
                 data-wistia-id="0ktyx14pqx"
                 data-src="https://fast.wistia.net/embed/iframe/0ktyx14pqx?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
@@ -761,12 +774,13 @@
             <div class="flex items-end justify-between mb-4">
               <div>
                 <h3 class="text-xl font-semibold">Animated backgrounds</h3>
-                <p class="text-smm text-mute-500 mt-1">Motion loops that elevate any scene.</p>
+                <p class="text-sm text-mute-500 mt-1">Motion loops that elevate any scene.</p>
               </div>
-              <span class="text-s text-mute-500 hidden sm:inline">5,000+ loops</span>
+              <span class="text-sm text-mute-500 hidden sm:inline">5,000+ loops</span>
             </div>
             <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
               <!-- Animated backgrounds preview · Wistia ID: jjyedmmpr9 -->
+              <img src="https://embed-ssl.wistia.com/deliveries/c9ffe4e4b3448e44acd1423cd0c1345b70a179e6.jpg?image_crop_resized=960x270" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               <iframe
                 data-wistia-id="jjyedmmpr9"
                 data-src="https://fast.wistia.net/embed/iframe/jjyedmmpr9?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
@@ -822,25 +836,36 @@
             }
           });
 
-          // Preload all Wistia videos when the templates section enters the viewport,
-          // so videos are ready (or already playing in the background) before tabs change.
-          var section = document.getElementById('templates');
-          if (section && 'IntersectionObserver' in window) {
-            var preloadObserver = new IntersectionObserver(function (entries) {
-              entries.forEach(function (entry) {
-                if (!entry.isIntersecting) return;
-                root.querySelectorAll('iframe[data-wistia-id]').forEach(function (iframe) {
-                  var wid = iframe.dataset.wistiaId;
-                  if (!wid || wid.indexOf('WISTIA_ID_') === 0) return;
-                  if (!iframe.src || iframe.src === 'about:blank') {
-                    iframe.src = iframe.dataset.src;
-                  }
-                });
-                preloadObserver.disconnect();
-              });
-            }, { rootMargin: '400px 0px' });
-            preloadObserver.observe(section);
+          // Helper: load any iframe with a data-src inside a panel (used for the SFX 6-pack
+          // and any other lazy iframes that aren't the main preview video).
+          function loadLazyIframes(panel) {
+            if (!panel) return;
+            panel.querySelectorAll('iframe[data-src]').forEach(function (iframe) {
+              if (!iframe.src || iframe.src === 'about:blank') {
+                var ds = iframe.dataset.src;
+                if (ds) iframe.src = ds;
+              }
+            });
           }
+
+          // Preload only the main preview iframe of a given panel index (one video, not all).
+          function preloadMainOf(idx) {
+            var p = panels[idx];
+            if (!p) return;
+            var iframe = p.querySelector('iframe[data-wistia-id]');
+            if (!iframe) return;
+            var wid = iframe.dataset.wistiaId;
+            if (!wid || wid.indexOf('WISTIA_ID_') === 0) return;
+            if (!iframe.src || iframe.src === 'about:blank') {
+              iframe.src = iframe.dataset.src;
+            }
+          }
+
+          // Gate auto-rotation and initial activation behind the section actually entering
+          // the viewport. Saves the rAF loop + Wistia loads when user is nowhere near it.
+          var section = document.getElementById('templates');
+          var sectionVisible = false;
+          var didStart = false;
 
           function setIframeState(iframe, shouldPlay) {
             if (!iframe) return;
@@ -888,11 +913,18 @@
               t.classList.toggle('hover:bg-paper-100', !isActive);
             });
             var target = order[idx];
+            var activePanel = null;
             panels.forEach(function (p) {
               var isActive = p.dataset.panel === target;
               p.classList.toggle('hidden', !isActive);
               setIframeState(p.querySelector('iframe[data-wistia-id]'), isActive);
+              if (isActive) activePanel = p;
             });
+            // Lazy-load any other iframes in the active panel (e.g. the 6 SFX players).
+            loadLazyIframes(activePanel);
+            // Preload the NEXT panel's main video so the upcoming transition is smooth.
+            // Spreads the network/decoding load across time instead of all at once.
+            preloadMainOf((idx + 1) % order.length);
             active = idx;
             startedAt = performance.now();
           }
@@ -937,8 +969,35 @@
             });
           });
 
-          activate(0);
-          rafId = requestAnimationFrame(tick);
+          function start() {
+            if (didStart) return;
+            didStart = true;
+            activate(0);
+            rafId = requestAnimationFrame(tick);
+          }
+
+          if (section && 'IntersectionObserver' in window) {
+            var visObserver = new IntersectionObserver(function (entries) {
+              entries.forEach(function (entry) {
+                sectionVisible = entry.isIntersecting;
+                if (sectionVisible) {
+                  start();
+                } else if (didStart && !paused) {
+                  // Section scrolled out of view — pause the rAF loop to save CPU.
+                  // We don't flip `paused` (that's user-initiated). Just cancel the loop;
+                  // it resumes below when the section comes back.
+                  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+                }
+                if (sectionVisible && didStart && !paused && !rafId) {
+                  startedAt = performance.now();
+                  rafId = requestAnimationFrame(tick);
+                }
+              });
+            }, { rootMargin: '200px 0px' });
+            visObserver.observe(section);
+          } else {
+            start();
+          }
         })();
       </script>
 
@@ -948,7 +1007,7 @@
   <!-- ───────────── TESTIMONIALS  (WHITE) ───────────── -->
   <section class="bg-paper">
     <div class="max-w-6xl mx-auto px-6 py-24">
-      <p class="text-center text-s uppercase tracking-widest text-mute-500 mb-3">From creators</p>
+      <p class="text-center text-sm uppercase tracking-widest text-mute-500 mb-3">From creators</p>
       <h2 class="text-center text-3xl md:text-4xl font-semibold tracking-tight mb-12">Built for people who ship.</h2>
 
       <div class="grid md:grid-cols-2 gap-6">
@@ -960,7 +1019,7 @@
             <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/f32a71f-0c10-2153-3d0-8c82dad328c4_468282778_10164847460199466_6422244758659880729_n.jpg" alt="Hilda Schlueter" class="h-12 w-12 rounded-pill object-cover" />
             <div>
               <div class="font-medium">Hilda Schlueter</div>
-              <div class="text-smm text-mute-500">Content creator</div>
+              <div class="text-sm text-mute-500">Content creator</div>
             </div>
           </div>
         </div>
@@ -972,7 +1031,7 @@
             <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/670641a-e7bd-ee8b-a5e-a46ec546de8_Brady_Hales_Pro_Pic.png" alt="Brady Hales" class="h-12 w-12 rounded-pill object-cover" />
             <div>
               <div class="font-medium">Brady Hales</div>
-              <div class="text-smm text-mute-400">Filmmaker</div>
+              <div class="text-sm text-mute-400">Filmmaker</div>
             </div>
           </div>
         </div>
@@ -988,16 +1047,16 @@
           <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/1f0177c-fcd5-a400-d321-00c6f66532_wQYLmC5ETUStuMB0TZ5X_eLWaGR9tRXaCrbFrZLsu_Satisfaction_Guarantee.png" alt="100% money-back guarantee" class="w-40 md:w-56" />
         </div>
         <div class="md:col-span-8">
-          <p class="text-s uppercase tracking-widest text-mute-500 mb-3">No-risk promise</p>
+          <p class="text-sm uppercase tracking-widest text-mute-500 mb-3">No-risk promise</p>
           <h2 class="text-4xl font-semibold tracking-tight">30-day money-back guarantee.</h2>
           <p class="mt-4 text-lg text-mute-500 max-w-xl">
             If you haven't spent your credits, you get a full refund within 30 days — no questions asked.
             Spent credits aren't refundable, like gas you've already burned.
           </p>
           <div class="mt-6 flex flex-wrap gap-3">
-            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-smm">Cancel anytime</span>
-            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-smm">Commercial license included</span>
-            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-smm">Credits never expire</span>
+            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-sm">Cancel anytime</span>
+            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-sm">Commercial license included</span>
+            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-sm">Credits never expire</span>
           </div>
         </div>
       </div>
@@ -1007,7 +1066,7 @@
   <!-- ───────────── FAQ  (BLACK) ───────────── -->
   <section id="faq" class="bg-ink text-paper">
     <div class="max-w-3xl mx-auto px-6 py-24">
-      <p class="text-s uppercase tracking-widest text-mute-400 mb-3">FAQ</p>
+      <p class="text-sm uppercase tracking-widest text-mute-400 mb-3">FAQ</p>
       <h2 class="text-4xl md:text-5xl font-semibold tracking-tight mb-12">Questions, answered.</h2>
 
       <div class="divide-y divide-ink-700 border-y border-ink-700">
@@ -1077,9 +1136,9 @@
         <div class="mb-3 h-8">
           <img src="https://assets.contentcreatortemplates.com/6ff811f3-cd89-4043-9f34-7866cc5dd6da/assets/prompt-edit-logo-with-name-dark.png" alt="PromptEdit" class="h-full" />
         </div>
-        <p class="text-smm text-mute-500 max-w-xs">A grocery store for AI. By Paul Xavier International LLC.</p>
+        <p class="text-sm text-mute-500 max-w-xs">A grocery store for AI. By Paul Xavier International LLC.</p>
       </div>
-      <div class="text-smm">
+      <div class="text-sm">
         <p class="font-medium mb-3">Product</p>
         <ul class="space-y-2 text-mute-500">
           <li><a href="#tools" class="hover:text-ink">Tools</a></li>
@@ -1088,7 +1147,7 @@
           <li><a href="#faq" class="hover:text-ink">FAQ</a></li>
         </ul>
       </div>
-      <div class="text-smm">
+      <div class="text-sm">
         <p class="font-medium mb-3">Legal</p>
         <ul class="space-y-2 text-mute-500">
           <li><a href="#" class="hover:text-ink">Terms & conditions</a></li>
@@ -1098,7 +1157,7 @@
       </div>
     </div>
     <div class="border-t border-paper-200">
-      <div class="max-w-6xl mx-auto px-6 py-6 text-s text-mute-500 flex flex-wrap items-center justify-between gap-2">
+      <div class="max-w-6xl mx-auto px-6 py-6 text-sm text-mute-500 flex flex-wrap items-center justify-between gap-2">
         <span>© Paul Xavier International LLC. Results shown are not typical.</span>
         <span>Made for creators.</span>
       </div>
@@ -1156,22 +1215,11 @@
         .fromTo('[data-hero-right] > *', { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.12, duration: 1.0 }, '-=1.0')
         .fromTo('[data-hero-bar]', { scaleX: 0 }, { scaleX: 1, duration: 1.2, ease: 'power3.inOut' }, '-=0.6');
 
-      /* ── Sticky nav: subtle elevation on scroll ── */
-      var header = document.querySelector('header.sticky');
-      if (header) {
-        ScrollTrigger.create({
-          start: 'top -10',
-          onUpdate: function (self) {
-            header.classList.toggle('shadow-soft', self.scroll() > 10);
-          }
-        });
-      }
-
       /* ── Section reveals: eyebrow + h2 + lede paragraph ── */
       gsap.utils.toArray('section').forEach(function (section, i) {
         if (i === 0) return; // hero handled separately
 
-        var eyebrow = section.querySelector('p.text-s.uppercase.tracking-widest');
+        var eyebrow = section.querySelector('p.text-sm.uppercase.tracking-widest');
         var heading = section.querySelector('h2');
 
         // Find any lede paragraph: directly after h2, OR a sibling p in the same wrapping flex/grid header
@@ -1185,7 +1233,7 @@
             headerRow.querySelectorAll(':scope > * p').forEach(function (p) {
               if (p === eyebrow || p === direct) return;
               if (heading.contains(p)) return;
-              if (p.classList.contains('text-s')) return;
+              if (p.classList.contains('text-sm')) return;
               ledes.push(p);
             });
           }
