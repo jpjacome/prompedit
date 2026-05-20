@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PromptEdit — A grocery store for AI</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:   { DEFAULT: '#0A0A0A', 900: '#0A0A0A', 800: '#1A1A1A', 700: '#2B2B2B' },
+            paper: { DEFAULT: '#FFFFFF', 50: '#FAFAFA', 100: '#F4F4F4', 200: '#EAEAEA' },
+            mute:  { 500: '#737373', 400: '#A3A3A3', 300: '#D4D4D4' },
+          },
+          fontFamily: {
+            sans:    ['Cabinet Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            display: ['Supreme', 'Cabinet Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          borderRadius: {
+            'xs': '6px', 'sm': '10px', 'md': '14px',
+            'lg': '20px', 'xl': '28px', '2xl': '36px', 'pill': '999px',
+          },
+          boxShadow: {
+            'soft': '0 1px 2px rgba(10,10,10,0.04), 0 4px 12px rgba(10,10,10,0.04)',
+            'card': '0 1px 3px rgba(10,10,10,0.06), 0 8px 24px rgba(10,10,10,0.06)',
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@200,300,400,500,700,800,900&f[]=supreme@100,200,300,400,500,700,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    html.lenis, html.lenis body { height: auto; }
+    .lenis.lenis-smooth { scroll-behavior: auto !important; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+    .lenis.lenis-stopped { overflow: hidden; }
+    .marquee { mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+
+    /* Type system: Supreme for titles, Cabinet Grotesk for body & UI */
+    body, p, button, input, label { font-family: 'Cabinet Grotesk', ui-sans-serif, system-ui, sans-serif; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Supreme', 'Cabinet Grotesk', ui-sans-serif, system-ui, sans-serif; }
+
+    /* Anti-FOUC: hide hero entrance targets until GSAP kicks in */
+    .gsap-loading [data-hero] { opacity: 0; }
+    .gsap-loading [data-hero-right] > * { opacity: 0; }
+
+    .magnetic { display: inline-flex; will-change: transform; }
+    .magnetic-inner { display: inline-flex; will-change: transform; }
+
+    /* Reveal helpers */
+    [data-mask] { display: inline-block; overflow: hidden; vertical-align: bottom; }
+    [data-mask] > .mask-inner { display: inline-block; will-change: transform; }
+
+    /* Tool video iframes: invisible until they finish loading, then fade in over the poster */
+    [data-tools-video] { opacity: 0; transition: opacity 600ms ease; }
+    [data-tools-video].is-loaded { opacity: 1; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script src="https://fast.wistia.com/assets/external/E-v1.js" async></script>
+</head>
+<body class="bg-paper text-ink font-sans antialiased gsap-loading">
+
+  <!-- ───────────── HERO + TRUSTED BY  (shared video background) ───────────── -->
+  <div class="relative overflow-hidden m-0 mt-0">
+
+    <!-- Video spanning navbar + both sections -->
+    <video
+      data-hero-video
+      class="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none will-change-transform origin-center"
+      src="https://cdn.midjourney.com/video/204a7ca6-e598-486f-ac87-acba5c5a38fc/3.mp4"
+      autoplay muted loop playsinline
+    ></video>
+
+    <!-- ───────────── NAV ───────────── -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-ink/80 backdrop-blur border-b border-ink-700">
+      <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="#" class="flex items-center gap-2 h-8">
+          <img
+            src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/4e61418-f758-6236-4be3-4eb4f0221be_Prompt_Edit_Logo_Black_Background_.png"
+            alt="PromptEdit"
+            class="h-full"
+          />
+        </a>
+        <nav class="hidden md:flex items-center gap-8 text-smm text-mute-400">
+          <a href="#tools" class="hover:text-paper transition">Tools</a>
+          <a href="#templates" class="hover:text-paper transition">Templates</a>
+          <a href="#pricing" class="hover:text-paper transition">Pricing</a>
+          <a href="#faq" class="hover:text-paper transition">FAQ</a>
+        </nav>
+        <div class="flex items-center gap-3">
+          <a href="#" class="hidden sm:inline text-smm text-mute-400 hover:text-paper transition">Login</a>
+          <a href="#pricing" class="px-4 py-2 rounded-pill bg-paper text-ink text-smm font-medium hover:bg-paper-100 transition">Get started</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dark gradient overlays spanning both sections -->
+    <div class="absolute inset-0 z-10 bg-gradient-to-b from-ink/85 via-ink/60 to-ink/40"></div>
+    <div class="absolute inset-0 z-10 bg-gradient-to-r from-ink/70 via-transparent to-transparent"></div>
+
+    <!-- ── HERO ── -->
+    <section class="relative z-20 text-paper min-h-[720px]">
+      <!-- Content -->
+      <div class="relative max-w-6xl mx-auto px-6 pt-24 pb-28">
+        <div class="grid lg:grid-cols-12 gap-10 items-center">
+          <div class="lg:col-span-7">
+            <span data-hero="badge" class="inline-flex items-center gap-2 px-3 py-1 rounded-pill border border-paper/20 bg-ink/30 backdrop-blur text-s text-paper">
+              <span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>
+              New · Pay-as-you-go AI credits
+            </span>
+            <h1 data-hero="title" class="mt-6 text-5xl md:text-7xl font-semibold tracking-tight leading-[1.02]">
+              A grocery store<br/>for AI.
+            </h1>
+            <p data-hero="lede" class="mt-6 text-lg text-mute-300 max-w-xl">
+              Every major AI tool — image, video, audio, plugins — in one marketplace.
+              Buy credits once. Spend them anywhere. No subscriptions required.
+            </p>
+            <div data-hero="cta" class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#pricing" class="magnetic px-6 py-3.5 rounded-pill bg-paper text-ink font-medium hover:bg-paper-100 transition">
+                <span class="magnetic-inner">Get started today →</span>
+              </a>
+              <a href="#tools" class="magnetic px-6 py-3.5 rounded-pill border border-paper/40 text-paper font-medium hover:bg-paper/10 transition backdrop-blur">
+                <span class="magnetic-inner">See the tools</span>
+              </a>
+            </div>
+            <div data-hero="trust" class="mt-8 flex flex-wrap items-center gap-6 text-smm text-mute-300">
+              <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>30-day money-back</span>
+              <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>Cancel anytime</span>
+              <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-pill bg-paper"></span>Commercial license</span>
+            </div>
+          </div>
+
+          <!-- Right column: logo lockup (logo only works on dark) + glass credits card -->
+          <div data-hero-right class="lg:col-span-5 space-y-4">
+            <div class="rounded-2xl border border-paper/15 bg-ink/40 backdrop-blur p-3 shadow-card">
+              <img
+                src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/4e61418-f758-6236-4be3-4eb4f0221be_Prompt_Edit_Logo_Black_Background_.png"
+                alt="PromptEdit"
+                class="w-full rounded-xl"
+              />
+            </div>
+            <div class="rounded-xl bg-ink/60 border border-paper/15 backdrop-blur shadow-card p-4 hidden md:block">
+              <div class="text-s text-mute-300 uppercase tracking-widest">Credits balance</div>
+              <div class="mt-1 text-2xl font-semibold text-paper"><span data-count="110" data-count-prefix="$" data-count-suffix=".00">$110.00</span></div>
+              <div class="mt-2 h-1.5 rounded-pill bg-paper/20 overflow-hidden">
+                <div data-hero-bar class="h-full w-3/4 bg-paper origin-left"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TRUSTED BY ── -->
+    <section class="relative z-20">
+      <div class="relative max-w-6xl mx-auto px-6 py-12">
+        <p class="text-center text-s uppercase tracking-widest text-mute-400 mb-6">Trusted by creators worldwide</p>
+        <div class="marquee">
+          <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/3f41f0-7e0d-a40c-b4f5-bd301788e3d0_Trusted_By_PE_.png" alt="Trusted by" class="w-full max-w-4xl mx-auto opacity-80" />
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ───────────── BEFORE / AFTER  (gradient: black → white) ───────────── -->
+  <section class="bg-paper">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+      <div class="max-w-2xl mb-12">
+        <p class="text-s uppercase tracking-widest text-neutral-800 mb-3">The shift</p>
+        <h2 class="text-4xl md:text-5xl font-semibold tracking-tight text-ink">Stop juggling subscriptions.</h2>
+        <p class="mt-4 text-lg text-neutral-800">
+          Most creators pay for tools they barely use. PromptEdit collapses every AI service
+          into a single balance — you only pay for what you actually generate.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="group rounded-2xl p-3 text-paper transition-all duration-500 hover:-translate-y-1">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-smm uppercase tracking-widest text-neutral-800">Before</span>
+            <span class="px-2 py-1 rounded-pill bg-neutral-300 text-smm text-ink">Fragmented</span>
+          </div>
+          <div class="overflow-hidden rounded-xl">
+            <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/821c2a-37e6-8b-b36-c8bad0746f1_Before_promptedit_copy.png" alt="Before PromptEdit" class="w-full scale-95 transition-all duration-700 ease-out group-hover:scale-105 group-hover:brightness-110 group-hover:saturate-150" />
+          </div>
+        </div>
+        <div class="group rounded-2xl p-3 text-paper transition-all duration-500 hover:-translate-y-1">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-smm uppercase tracking-widest text-neutral-800">After</span>
+            <span class="px-2 py-1 rounded-pill bg-neutral-300 text-ink text-smm">One marketplace</span>
+          </div>
+          <div class="overflow-hidden rounded-xl">
+            <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/sites/8228/images/c6cb82f-c0-1f2-b48-2eec5ff2d80d_After_promptedit_copy.png" alt="After PromptEdit" class="w-full scale-95 transition-all duration-700 ease-out group-hover:scale-105 group-hover:brightness-110 group-hover:saturate-150" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── TOOLS  (LIGHT · horizontal scroll) ───────────── -->
+  <section id="tools" class="bg-paper text-ink">
+    <div data-tools-scroll class="h-screen min-h-[640px] overflow-hidden relative">
+
+      <!-- Floating header & progress -->
+      <div class="absolute top-0 left-0 right-0 z-20 pointer-events-none">
+        <div class="max-w-6xl mx-auto px-6 pt-12 md:pt-20">
+          <div class="flex items-end justify-between flex-wrap gap-4 pointer-events-auto">
+            <div>
+              <p class="text-s uppercase tracking-widest text-mute-200 mb-3">The marketplace</p>
+              <h2 class="text-3xl md:text-5xl font-semibold tracking-tight">Every tool. One checkout.</h2>
+            </div>
+            <div class="flex items-center gap-3 text-s text-mute-500">
+              <span data-tools-current class="font-mono text-ink">01</span>
+              <div class="w-32 md:w-48 h-px bg-paper-200 relative">
+                <div data-tools-bar class="absolute -inset-y-[1px] left-0 h-[3px] bg-ink transition-[width] duration-300" style="width:25%"></div>
+              </div>
+              <span class="font-mono text-mute-400">04</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Horizontal track -->
+      <div data-tools-track class="absolute inset-0 flex">
+
+        <!-- Panel 01 · AI Image Tools -->
+        <div data-panel class="w-screen h-full flex-shrink-0 flex items-center px-6 md:px-16 pt-40 pb-12">
+          <div class="max-w-6xl mx-auto w-full">
+            <div class="grid lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+              <div class="lg:col-span-4">
+                <div class="text-6xl md:text-[7rem] font-semibold text-ink leading-none mb-2">01</div>
+                <h3 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">AI Image Tools</h3>
+                <p class="text-base text-mute-200">What can you do with these image tools?</p>
+              </div>
+              <div class="lg:col-span-8">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/03a0dffe1ce7befb12190779e46c532de8d0ce6f.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/6ugrp949dp?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Clones"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">AI Clones</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/07899d9f389dcd488a18f1ad25a0324795d02d78.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/5bzldtmz36?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Social Media Posts"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Social Media Posts</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/862cd638153572251fee0dced4671398bb7cfa6c.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/kvqvjrid9z?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Graphic Design"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Graphic Design</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/3338a0066c6741c886085cca3d318687129987ed.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/72zakh7jbf?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Image Editing"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Image Editing</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/718230370e46300dc4ca1c8c2c3ab7f753782edf.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/yrq89m8ns0?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="YouTube Thumbnails"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">YouTube Thumbnails</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/4a12d5370b0e698ddc2f5c786bd5d98cf4da17b4.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/cypx73wu36?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Online Ads"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Online Ads</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 02 · AI Video Tools -->
+        <div data-panel class="w-screen h-full flex-shrink-0 flex items-center px-6 md:px-16 pt-40 pb-12">
+          <div class="max-w-6xl mx-auto w-full">
+            <div class="grid lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+              <div class="lg:col-span-4">
+                <div class="text-6xl md:text-[7rem] font-semibold text-ink leading-none mb-2">02</div>
+                <h3 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">AI Video Tools</h3>
+                <p class="text-base text-mute-200">What can you do with these video tools?</p>
+              </div>
+              <div class="lg:col-span-8">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/71faa554636db18800845e20e4d6ac0334615598.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/v39qn2mla0?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Clone Videos"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Clone Videos</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/4698dda4ea29cd6d1f1274e009b084d7845b11bb.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/qx4qain2eg?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Visual Effects"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Visual Effects</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/ddbfeddbec8f3c0dc6f60e80d1e5a099cb0e51c6.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/3rllmh5doc?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Cinematic Films"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Cinematic Films</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/b110ed999fcfb57b1c1bd9818daf1e9b4226b02f.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/1muopqfwh6?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Video Ads"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Video Ads</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/cd1090f3a99b05c6f01a40f9118245b97cb387df.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/fq2zoz36cz?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Reels & TikToks"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Reels &amp; TikToks</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/6092ac0dd155b243cf4f00848cb25c8cf142bd75.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/8nri26so0p?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="YouTube Videos"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">YouTube Videos</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 03 · AI Audio Tools -->
+        <div data-panel class="w-screen h-full flex-shrink-0 flex items-center px-6 md:px-16 pt-40 pb-12">
+          <div class="max-w-6xl mx-auto w-full">
+            <div class="grid lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+              <div class="lg:col-span-4">
+                <div class="text-6xl md:text-[7rem] font-semibold text-ink leading-none mb-2">03</div>
+                <h3 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">AI Audio Tools</h3>
+                <p class="text-base text-mute-200">What can you do with these audio tools?</p>
+              </div>
+              <div class="lg:col-span-8">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/f67dbd9c93c0e6fe6558167fc9e50a93.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/rsh692c710?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Voiceovers"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">AI Voiceovers</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/4541f5cc8e6c9e6156b454d272cd4264.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/rusyskd1ox?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Voice Clones"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">AI Voice Clones</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/05b35e11964d9e59a30c48d00257b965.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/x6w5dao4h0?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Voice Swaps"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">Voice Swaps</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink">
+                    <img src="https://embed-ssl.wistia.com/deliveries/7d3087ee8effee2a51be8d803f7c25f1.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/0yhtigj9mg?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Sound Effects"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">AI Sound Effects</p>
+                    </div>
+                  </div>
+
+                  <div class="relative aspect-video overflow-hidden rounded-lg border border-neutral-700 bg-ink col-span-2 md:col-span-1">
+                    <img src="https://embed-ssl.wistia.com/deliveries/6228a93e2476bc163caba1eeb3c0dd99.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                    <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/81m386dh7h?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="AI Music Generation"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent pointer-events-none">
+                      <p class="text-s md:text-smm font-medium text-paper">AI Music Generation</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 04 · AI Editing Plugins -->
+        <div data-panel class="w-screen h-full flex-shrink-0 flex items-center px-6 md:px-16 pt-40 pb-12">
+          <div class="max-w-6xl mx-auto w-full">
+            <div class="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+              <div class="lg:col-span-6">
+                <div class="text-7xl md:text-[8rem] font-semibold text-ink leading-none mb-2">04</div>
+                <h3 class="text-3xl md:text-5xl font-semibold tracking-tight mb-2">AI Editing Plugins</h3>
+                <p class="text-base md:text-lg text-mute-400 mb-4">Access AI tools inside your editing software.</p>
+                <p class="text-smm md:text-base text-mute-200 max-w-md mb-6">No need to open a browser. The plugins live inside your favorite NLE — generate AI creations and drop them straight into the timeline.</p>
+                <div class="flex flex-wrap gap-2 max-w-md">
+                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">Premiere Pro</div>
+                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">Final Cut Pro</div>
+                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">DaVinci Resolve</div>
+                  <div class="px-3 py-2.5 rounded-lg border border-paper-200 bg-paper-50 text-s md:text-smm text-ink">After Effects</div>
+                </div>
+              </div>
+              <div class="lg:col-span-6">
+                <div class="relative aspect-video overflow-hidden rounded-2xl border border-neutral-700 bg-ink">
+                  <img src="https://embed-ssl.wistia.com/deliveries/9240ed6608eb19b7247d380b19e860dbb112e148.jpg?image_crop_resized=960x540" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" />
+                  <iframe data-tools-video data-src="https://fast.wistia.net/embed/iframe/821b33oy7g?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true" src="about:blank" class="absolute inset-0 w-full h-full pointer-events-none" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" title="Editing plugin"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Scroll hint -->
+      <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 text-s text-mute-400 flex items-center gap-2 pointer-events-none">
+        <span>Scroll to explore</span>
+        <span aria-hidden="true">→</span>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      if (!window.gsap || !window.ScrollTrigger) return;
+      var track = document.querySelector('[data-tools-track]');
+      var trigger = document.querySelector('[data-tools-scroll]');
+      if (!track || !trigger) return;
+
+      var panels = gsap.utils.toArray('[data-tools-track] > [data-panel]');
+      var current = document.querySelector('[data-tools-current]');
+      var bar = document.querySelector('[data-tools-bar]');
+      if (!panels.length) return;
+
+      // Lazy-load the video panel iframes once the section approaches viewport
+      var lazyIframes = document.querySelectorAll('[data-tools-video][data-src]');
+      // Fade in iframes that don't need lazy-loading once they finish their initial load
+      document.querySelectorAll('[data-tools-video]:not([data-src])').forEach(function (f) {
+        f.addEventListener('load', function () { f.classList.add('is-loaded'); }, { once: true });
+        if (f.complete || (f.contentDocument && f.contentDocument.readyState === 'complete')) {
+          f.classList.add('is-loaded');
+        }
+      });
+      ScrollTrigger.create({
+        trigger: trigger,
+        start: 'top bottom',
+        once: true,
+        onEnter: function () {
+          lazyIframes.forEach(function (f) {
+            if (f.dataset.src && (!f.src || f.src === 'about:blank')) {
+              f.addEventListener('load', function () { f.classList.add('is-loaded'); }, { once: true });
+              f.src = f.dataset.src;
+            }
+          });
+        }
+      });
+
+      gsap.to(track, {
+        x: function () { return -(track.scrollWidth - window.innerWidth); },
+        ease: 'none',
+        scrollTrigger: {
+          trigger: trigger,
+          start: 'top top',
+          end: function () { return '+=' + (track.scrollWidth - window.innerWidth); },
+          pin: true,
+          scrub: 1,
+          invalidateOnRefresh: true,
+          onUpdate: function (self) {
+            var idx = Math.min(panels.length - 1, Math.round(self.progress * (panels.length - 1)));
+            if (current) current.textContent = String(idx + 1).padStart(2, '0');
+            if (bar) bar.style.width = ((idx + 1) / panels.length * 100) + '%';
+          }
+        }
+      });
+    })();
+  </script>
+
+  <!-- ───────────── PRICING  (DARK GRAY) ───────────── -->
+  <section id="pricing" class="bg-neutral-800">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+      <div class="max-w-2xl mx-auto text-center mb-14">
+        <p class="text-s uppercase tracking-widest text-neutral-400 mb-3">Pricing</p>
+        <h2 class="text-4xl md:text-5xl font-semibold tracking-tight text-paper">Two simple ways in.</h2>
+        <p class="mt-4 text-lg text-neutral-300">Top up once, or subscribe for a permanent credit boost plus the Templates Library.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div class="rounded-2xl border border-neutral-700 bg-neutral-900 text-paper p-8 flex flex-col">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold">One-time top-up</h3>
+            <span class="px-2 py-1 rounded-pill bg-neutral-700 text-s text-neutral-300">Pay once</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-5xl font-semibold tracking-tight">$98</span>
+            <span class="text-neutral-400">one-time</span>
+          </div>
+          <p class="mt-2 text-neutral-300">Get <span class="text-paper font-medium">$110</span> in credits — a 10% bonus.</p>
+          <ul class="mt-6 space-y-3 text-smm flex-1">
+            <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-neutral-500"></span>Access to every AI tool on the marketplace</li>
+            <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-neutral-500"></span>No subscription, no recurring charge</li>
+            <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-neutral-500"></span>Credits never expire</li>
+          </ul>
+          <a href="#" class="mt-8 block text-center px-6 py-3.5 rounded-pill border border-neutral-600 text-paper font-medium hover:bg-neutral-700 transition">
+            Buy $110 in credits
+          </a>
+        </div>
+
+        <div class="rounded-2xl bg-paper text-ink p-8 relative shadow-card flex flex-col">
+          <span class="absolute -top-3 left-8 px-3 py-1 rounded-pill bg-ink text-paper text-s font-medium">Most popular</span>
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold">Monthly subscription</h3>
+            <span class="px-2 py-1 rounded-pill bg-paper-100 text-ink text-s">+20% lifetime</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-5xl font-semibold tracking-tight">$39</span>
+            <span class="text-mute-500">/month</span>
+          </div>
+          <p class="mt-2 text-mute-500">$49 in credits every month + 20% lifetime credit boost.</p>
+          <ul class="mt-6 space-y-3 text-smm flex-1">
+            <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-ink"></span>Everything in the one-time plan</li>
+            <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-ink"></span>Full Content Creator Templates Library</li>
+            <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-ink"></span>Faster generation & multi-generation</li>
+            <li class="flex items-start gap-3"><span class="mt-1 h-1.5 w-1.5 rounded-pill bg-ink"></span>Cancel anytime</li>
+          </ul>
+          <a href="#" class="mt-8 block text-center px-6 py-3.5 rounded-pill bg-ink text-paper font-medium hover:bg-ink-700 transition">
+            Start monthly plan →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+ <!-- ───────────── TEMPLATES LIBRARY  (LIGHT) ───────────── -->
+
+  <section id="templates" class="bg-paper-50 text-ink">
+    <div class="max-w-6xl mx-auto px-6 py-12">
+      <div class="grid lg:grid-cols-12 gap-10 items-end mb-14">
+        <div class="lg:col-span-7">
+          <p class="text-s uppercase tracking-widest text-mute-500 mb-3">Included with monthly</p>
+          <h2 class="text-4xl md:text-5xl font-semibold tracking-tight">The Content Creator Templates Library.</h2>
+        </div>
+        <div class="lg:col-span-5">
+          <p class="text-mute-500">A vault of color grades, sound effects, motion templates, overlays, and animated backgrounds. Hollywood-grade — drag, drop, ship.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-12" data-stagger>
+        <div class="rounded-xl border border-paper-200 bg-paper p-5">
+          <div class="text-3xl font-semibold tracking-tight"><span data-count="4000" data-count-format="comma">4,000</span><span class="text-mute-500">+</span></div>
+          <div class="text-smm text-mute-500 mt-1">LUTs</div>
+        </div>
+        <div class="rounded-xl border border-paper-200 bg-paper p-5">
+          <div class="text-3xl font-semibold tracking-tight"><span data-count="60" data-count-suffix="K">60K</span><span class="text-mute-500">+</span></div>
+          <div class="text-smm text-mute-500 mt-1">Sound effects</div>
+        </div>
+        <div class="rounded-xl border border-paper-200 bg-paper p-5">
+          <div class="text-3xl font-semibold tracking-tight"><span data-count="3000" data-count-format="comma">3,000</span><span class="text-mute-500">+</span></div>
+          <div class="text-smm text-mute-500 mt-1">Text animations</div>
+        </div>
+        <div class="rounded-xl border border-paper-200 bg-paper p-5">
+          <div class="text-3xl font-semibold tracking-tight"><span data-count="2000" data-count-format="comma">2,000</span><span class="text-mute-500">+</span></div>
+          <div class="text-smm text-mute-500 mt-1">Overlays</div>
+        </div>
+        <div class="rounded-xl border border-paper-200 bg-paper p-5 col-span-2 md:col-span-1">
+          <div class="text-3xl font-semibold tracking-tight"><span data-count="5000" data-count-format="comma">5,000</span><span class="text-mute-500">+</span></div>
+          <div class="text-smm text-mute-500 mt-1">Backgrounds</div>
+        </div>
+      </div>
+
+      <!-- Tabbed gallery — auto-advances every 6s until a tab is clicked -->
+      <div id="tpl-gallery" class="p-6" data-interval="6000">
+        <!-- Tab bar -->
+        <div class="flex flex-wrap items-center gap-2 mb-6" role="tablist">
+          <button type="button" data-tab="luts" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">LUTs <span class="text-mute-400 ml-1">4,000+</span></button>
+          <button type="button" data-tab="sfx" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Sound effects <span class="text-mute-500 ml-1">60K+</span></button>
+          <button type="button" data-tab="text" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Text animations <span class="text-mute-500 ml-1">3,000+</span></button>
+          <button type="button" data-tab="overlays" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition bg-ink text-paper" aria-selected="true">Overlays <span class="text-mute-500 ml-1">2,000+</span></button>
+          <button type="button" data-tab="bg" class="tpl-tab px-4 py-2 rounded-pill text-smm font-medium transition border border-paper-200 text-ink hover:bg-paper-100" aria-selected="false">Backgrounds <span class="text-mute-500 ml-1">5,000+</span></button>
+
+          <!-- Progress bar -->
+          <div class="ml-auto hidden sm:flex items-center gap-3">
+            <span id="tpl-status" class="text-s text-mute-500">Paused</span>
+            <div class="w-24 h-1 rounded-pill bg-paper-200 overflow-hidden">
+              <div id="tpl-progress" class="h-full w-0 bg-ink transition-[width] duration-100 ease-linear" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panels -->
+        <div class="relative">
+          <div data-panel="luts" class="tpl-panel hidden">
+            <div class="flex items-end justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-semibold">LUTs · Color presets</h3>
+                <p class="text-smm text-mute-500 mt-1">Drag-and-drop cinematic color in one click.</p>
+              </div>
+              <span class="text-s text-mute-500 hidden sm:inline">4,000+ presets</span>
+            </div>
+            <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
+              <!-- LUTs preview · Wistia ID: t21vfpbv9s -->
+              <iframe
+                data-wistia-id="t21vfpbv9s"
+                data-src="https://fast.wistia.net/embed/iframe/t21vfpbv9s?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
+                src="about:blank"
+                class="absolute inset-0 w-full h-full pointer-events-none"
+                allow="autoplay; fullscreen"
+                allowtransparency="true"
+                frameborder="0"
+                scrolling="no"
+                title="LUTs preview"></iframe>
+            </div>
+            <div class="rounded-xl border border-paper-200 bg-paper p-2 md:p-4">
+              <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/6860d8-5bbb-ac-bc3-6044a4c873aa_CCT_LUT_GRID-min.png" alt="LUT grid" class="w-full rounded-lg shadow-none">
+            </div>
+          </div>
+
+          <div data-panel="sfx" class="tpl-panel hidden">
+            <div class="flex items-end justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-semibold">Sound effects</h3>
+                <p class="text-smm text-mute-500 mt-1">Cinematic SFX, foley, transitions, risers, drops.</p>
+              </div>
+              <span class="text-s text-mute-500 hidden sm:inline">60K+ samples</span>
+            </div>
+            <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-6">
+              <!-- Sound effects preview · Wistia ID: ucv3bj2w6o -->
+              <iframe
+                data-wistia-id="ucv3bj2w6o"
+                data-src="https://fast.wistia.net/embed/iframe/ucv3bj2w6o?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
+                src="about:blank"
+                class="absolute inset-0 w-full h-full pointer-events-none"
+                allow="autoplay; fullscreen"
+                allowtransparency="true"
+                frameborder="0"
+                scrolling="no"
+                title="Sound effects preview"></iframe>
+            </div>
+
+            <!-- Listen to some of our sounds -->
+            <p class="text-smm font-medium text-mute-500 uppercase tracking-widest mb-4">Listen to some of our sounds</p>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+
+              <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
+                <iframe src="https://fast.wistia.net/embed/iframe/2ve4xlevtb?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+              </div>
+
+              <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
+                <iframe src="https://fast.wistia.net/embed/iframe/m4foab6mu6?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+              </div>
+
+              <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
+                <iframe src="https://fast.wistia.net/embed/iframe/1zkz745vsy?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+              </div>
+
+              <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
+                <iframe src="https://fast.wistia.net/embed/iframe/88wnd1t5pj?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+              </div>
+
+              <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
+                <iframe src="https://fast.wistia.net/embed/iframe/5vsrw5dx7r?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+              </div>
+
+              <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
+                <iframe src="https://fast.wistia.net/embed/iframe/k1okxdkoqv?autoPlay=false&playButton=true&playbar=true&controlsVisibleOnLoad=true&volumeControl=true&settingsControl=false&doNotTrack=true&videoFoam=true" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="absolute inset-0 w-full h-full"></iframe>
+              </div>
+
+            </div>
+          </div>
+
+          <div data-panel="text" class="tpl-panel hidden">
+            <div class="flex items-end justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-semibold">Text animations</h3>
+                <p class="text-smm text-mute-500 mt-1">Scroll-stopping title templates, ready to drop in.</p>
+              </div>
+              <span class="text-s text-mute-500 hidden sm:inline">3,000+ designs</span>
+            </div>
+            <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
+              <!-- Text animations preview · Wistia ID: lgoc5cbukb -->
+              <iframe
+                data-wistia-id="lgoc5cbukb"
+                data-src="https://fast.wistia.net/embed/iframe/lgoc5cbukb?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
+                src="about:blank"
+                class="absolute inset-0 w-full h-full pointer-events-none"
+                allow="autoplay; fullscreen"
+                allowtransparency="true"
+                frameborder="0"
+                scrolling="no"
+                title="Text animations preview"></iframe>
+            </div>
+            <div class="rounded-xl border border-paper-200 bg-paper p-2 md:p-4">
+              <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/dea3332-ec8-724-c87c-d06cdc47811_CCT_TITLE_GRID-min_1_.png" alt="Text animations" class="w-full rounded-lg shadow-none">
+            </div>
+          </div>
+
+          <div data-panel="overlays" class="tpl-panel">
+            <div class="flex items-end justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-semibold">Overlays</h3>
+                <p class="text-smm text-mute-500 mt-1">Trendy textures, light leaks, vintage grain.</p>
+              </div>
+              <span class="text-s text-mute-500 hidden sm:inline">2,000+ packs</span>
+            </div>
+            <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
+              <!-- Overlays preview · Wistia ID: 0ktyx14pqx -->
+              <iframe
+                data-wistia-id="0ktyx14pqx"
+                data-src="https://fast.wistia.net/embed/iframe/0ktyx14pqx?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
+                src="about:blank"
+                class="absolute inset-0 w-full h-full pointer-events-none"
+                allow="autoplay; fullscreen"
+                allowtransparency="true"
+                frameborder="0"
+                scrolling="no"
+                title="Overlays preview"></iframe>
+            </div>
+            <div class="rounded-xl border border-paper-200 bg-paper p-2 md:p-4">
+              <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/76b1ec-f3e-5ed4-6bb8-d5e45f8c8db_CCT_OVERLAY_GRID-min.png" alt="Overlays" class="w-full rounded-lg shadow-none">
+            </div>
+          </div>
+
+          <div data-panel="bg" class="tpl-panel hidden">
+            <div class="flex items-end justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-semibold">Animated backgrounds</h3>
+                <p class="text-smm text-mute-500 mt-1">Motion loops that elevate any scene.</p>
+              </div>
+              <span class="text-s text-mute-500 hidden sm:inline">5,000+ loops</span>
+            </div>
+            <div class="rounded-xl overflow-hidden border border-paper-200 bg-ink relative aspect-[16/4] max-w-4xl mx-auto mb-4">
+              <!-- Animated backgrounds preview · Wistia ID: jjyedmmpr9 -->
+              <iframe
+                data-wistia-id="jjyedmmpr9"
+                data-src="https://fast.wistia.net/embed/iframe/jjyedmmpr9?autoPlay=true&silentAutoPlay=allow&muted=true&endVideoBehavior=loop&playButton=false&smallPlayButton=false&fullscreenButton=false&playbar=false&controlsVisibleOnLoad=false&volumeControl=false&settingsControl=false&doNotTrack=true&videoFoam=true"
+                src="about:blank"
+                class="absolute inset-0 w-full h-full pointer-events-none"
+                allow="autoplay; fullscreen"
+                allowtransparency="true"
+                frameborder="0"
+                scrolling="no"
+                title="Animated backgrounds preview"></iframe>
+            </div>
+            <div class="rounded-xl border border-paper-200 bg-paper p-2 md:p-4">
+              <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/bbe3604-c34-453b-ae7f-65daf37742a6_CCT_BACKGROUND_GRID-min.png" alt="Animated backgrounds" class="w-full rounded-lg shadow-none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          var root = document.getElementById('tpl-gallery');
+          if (!root) return;
+          var tabs = root.querySelectorAll('.tpl-tab');
+          var panels = root.querySelectorAll('.tpl-panel');
+          var progress = document.getElementById('tpl-progress');
+          var status = document.getElementById('tpl-status');
+          var interval = parseInt(root.dataset.interval, 10) || 6000;
+          var order = Array.prototype.map.call(tabs, function (t) { return t.dataset.tab; });
+          var active = 0;
+          var paused = false;
+          var startedAt = 0;
+          var rafId = null;
+
+          // Wistia player registry — Wistia calls our onReady when each iframe is ready
+          var wistiaPlayers = {};
+          window._wq = window._wq || [];
+          window._wq.push({
+            id: '_all',
+            onReady: function (video) {
+              try {
+                var id = video.hashedId();
+                wistiaPlayers[id] = wistiaPlayers[id] || [];
+                wistiaPlayers[id].push(video);
+                var iframe = video.iframe ? video.iframe() : null;
+                var container = iframe ? iframe.parentElement : null;
+                var panel = iframe ? iframe.closest('.tpl-panel') : null;
+
+                // If this player isn't in the active panel, pause it immediately
+                if (panel && panel.classList.contains('hidden')) {
+                  video.pause();
+                }
+              } catch (e) {}
+            }
+          });
+
+          // Preload all Wistia videos when the templates section enters the viewport,
+          // so videos are ready (or already playing in the background) before tabs change.
+          var section = document.getElementById('templates');
+          if (section && 'IntersectionObserver' in window) {
+            var preloadObserver = new IntersectionObserver(function (entries) {
+              entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                root.querySelectorAll('iframe[data-wistia-id]').forEach(function (iframe) {
+                  var wid = iframe.dataset.wistiaId;
+                  if (!wid || wid.indexOf('WISTIA_ID_') === 0) return;
+                  if (!iframe.src || iframe.src === 'about:blank') {
+                    iframe.src = iframe.dataset.src;
+                  }
+                });
+                preloadObserver.disconnect();
+              });
+            }, { rootMargin: '400px 0px' });
+            preloadObserver.observe(section);
+          }
+
+          function setIframeState(iframe, shouldPlay) {
+            if (!iframe) return;
+            var wid = iframe.dataset.wistiaId;
+            // Skip placeholder IDs — leaves the poster background visible
+            if (!wid || wid.indexOf('WISTIA_ID_') === 0) return;
+            var loaded = iframe.src && iframe.src !== 'about:blank';
+
+            if (shouldPlay) {
+              if (!loaded) {
+                iframe.src = iframe.dataset.src; // first activation: load + autoplay
+              } else {
+                // Already loaded — use Wistia API to resume
+                var players = wistiaPlayers[wid] || [];
+                players.forEach(function (p) {
+                  // Find the matching player instance for this iframe
+                  try {
+                    var pIframe = p.iframe ? p.iframe() : null;
+                    if (pIframe === iframe) p.play();
+                  } catch (e) {}
+                });
+              }
+            } else {
+              if (loaded) {
+                var players = wistiaPlayers[wid] || [];
+                players.forEach(function (p) {
+                  try {
+                    var pIframe = p.iframe ? p.iframe() : null;
+                    if (pIframe === iframe) p.pause();
+                  } catch (e) {}
+                });
+              }
+            }
+          }
+
+          function activate(idx) {
+            tabs.forEach(function (t, i) {
+              var isActive = i === idx;
+              t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+              t.classList.toggle('bg-ink', isActive);
+              t.classList.toggle('text-paper', isActive);
+              t.classList.toggle('border', !isActive);
+              t.classList.toggle('border-paper-200', !isActive);
+              t.classList.toggle('text-ink', !isActive);
+              t.classList.toggle('hover:bg-paper-100', !isActive);
+            });
+            var target = order[idx];
+            panels.forEach(function (p) {
+              var isActive = p.dataset.panel === target;
+              p.classList.toggle('hidden', !isActive);
+              setIframeState(p.querySelector('iframe[data-wistia-id]'), isActive);
+            });
+            active = idx;
+            startedAt = performance.now();
+          }
+
+          function tick(now) {
+            if (paused) return;
+            var elapsed = now - startedAt;
+            var pct = Math.min(100, (elapsed / interval) * 100);
+            if (progress) progress.style.width = pct + '%';
+            if (elapsed >= interval) {
+              activate((active + 1) % order.length);
+              if (progress) progress.style.width = '0%';
+            }
+            rafId = requestAnimationFrame(tick);
+          }
+
+          function pauseAutoRotate() {
+            paused = true;
+            if (rafId) cancelAnimationFrame(rafId);
+            if (progress) progress.style.width = '100%';
+            if (status) status.textContent = 'Paused';
+          }
+
+          tabs.forEach(function (t, i) {
+            t.addEventListener('click', function () {
+              pauseAutoRotate();
+              activate(i);
+            });
+          });
+
+          // Stop auto-rotation when clicking images or videos within panels
+          panels.forEach(function (panel) {
+            var images = panel.querySelectorAll('img');
+            var iframes = panel.querySelectorAll('iframe');
+
+            images.forEach(function (img) {
+              img.addEventListener('click', pauseAutoRotate);
+            });
+
+            iframes.forEach(function (iframe) {
+              iframe.addEventListener('click', pauseAutoRotate);
+            });
+          });
+
+          activate(0);
+          rafId = requestAnimationFrame(tick);
+        })();
+      </script>
+
+    </div>
+  </section>
+
+  <!-- ───────────── TESTIMONIALS  (WHITE) ───────────── -->
+  <section class="bg-paper">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+      <p class="text-center text-s uppercase tracking-widest text-mute-500 mb-3">From creators</p>
+      <h2 class="text-center text-3xl md:text-4xl font-semibold tracking-tight mb-12">Built for people who ship.</h2>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="rounded-2xl border border-paper-200 p-10 bg-paper-50">
+          <p class="text-2xl md:text-3xl font-medium tracking-tight leading-snug">
+            "My daughter and I got more editing work done today in 3 hours than we normally do in 3 days."
+          </p>
+          <div class="mt-8 flex items-center gap-4">
+            <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/f32a71f-0c10-2153-3d0-8c82dad328c4_468282778_10164847460199466_6422244758659880729_n.jpg" alt="Hilda Schlueter" class="h-12 w-12 rounded-pill object-cover" />
+            <div>
+              <div class="font-medium">Hilda Schlueter</div>
+              <div class="text-smm text-mute-500">Content creator</div>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-2xl p-10 bg-ink text-paper">
+          <p class="text-2xl md:text-3xl font-medium tracking-tight leading-snug">
+            "It's the only AI subscription I actually use every single day."
+          </p>
+          <div class="mt-8 flex items-center gap-4">
+            <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/670641a-e7bd-ee8b-a5e-a46ec546de8_Brady_Hales_Pro_Pic.png" alt="Brady Hales" class="h-12 w-12 rounded-pill object-cover" />
+            <div>
+              <div class="font-medium">Brady Hales</div>
+              <div class="text-smm text-mute-400">Filmmaker</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── GUARANTEE  (GRAY) ───────────── -->
+  <section class="bg-paper-100">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+      <div class="grid md:grid-cols-12 gap-10 items-center">
+        <div class="md:col-span-4 flex justify-center">
+          <img src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2159239506/settings_images/1f0177c-fcd5-a400-d321-00c6f66532_wQYLmC5ETUStuMB0TZ5X_eLWaGR9tRXaCrbFrZLsu_Satisfaction_Guarantee.png" alt="100% money-back guarantee" class="w-40 md:w-56" />
+        </div>
+        <div class="md:col-span-8">
+          <p class="text-s uppercase tracking-widest text-mute-500 mb-3">No-risk promise</p>
+          <h2 class="text-4xl font-semibold tracking-tight">30-day money-back guarantee.</h2>
+          <p class="mt-4 text-lg text-mute-500 max-w-xl">
+            If you haven't spent your credits, you get a full refund within 30 days — no questions asked.
+            Spent credits aren't refundable, like gas you've already burned.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-smm">Cancel anytime</span>
+            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-smm">Commercial license included</span>
+            <span class="px-3 py-1 rounded-pill border border-paper-200 bg-paper text-smm">Credits never expire</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── FAQ  (BLACK) ───────────── -->
+  <section id="faq" class="bg-ink text-paper">
+    <div class="max-w-3xl mx-auto px-6 py-24">
+      <p class="text-s uppercase tracking-widest text-mute-400 mb-3">FAQ</p>
+      <h2 class="text-4xl md:text-5xl font-semibold tracking-tight mb-12">Questions, answered.</h2>
+
+      <div class="divide-y divide-ink-700 border-y border-ink-700">
+        <details class="group py-5">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="font-medium">Is the quality different from the official tools?</span>
+            <span class="text-mute-400 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-3 text-mute-400">No. You're using the same models and outputs as the source providers — just paid for via credits instead of separate subscriptions.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="font-medium">Do the templates work with my editing software?</span>
+            <span class="text-mute-400 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-3 text-mute-400">Yes — LUTs, SFX, text animations, overlays, and backgrounds work across Premiere, Final Cut, DaVinci Resolve, and most major editors.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="font-medium">What happens to my videos if I cancel?</span>
+            <span class="text-mute-400 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-3 text-mute-400">Anything you've already created or downloaded stays yours — including commercial rights. New projects just won't have access to subscription-only templates.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="font-medium">Can I share my account?</span>
+            <span class="text-mute-400 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-3 text-mute-400">Subscriptions are individual. No account sharing or automated scraping permitted.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="font-medium">Do credits expire?</span>
+            <span class="text-mute-400 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-3 text-mute-400">Never. Top up once and use them whenever inspiration strikes.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── FINAL CTA  (BLACK · dark moment #3) ───────────── -->
+  <section class="bg-ink text-paper">
+    <div class="max-w-4xl mx-auto px-6 py-24 text-center">
+      <h2 class="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
+        Every AI tool.<br/>One balance.
+      </h2>
+      <p class="mt-5 text-lg text-mute-400 max-w-xl mx-auto">
+        Stop paying for software you don't use. Buy credits, create freely.
+      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3">
+        <a href="#pricing" class="px-6 py-3.5 rounded-pill bg-paper text-ink font-medium hover:bg-paper-100 transition">
+          Get started today →
+        </a>
+        <a href="#tools" class="px-6 py-3.5 rounded-pill border border-paper text-paper font-medium hover:bg-ink-700 transition">
+          Explore the tools
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── FOOTER  (GRAY) ───────────── -->
+  <footer class="bg-paper-50 border-t border-paper-200">
+    <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8 items-start">
+      <div>
+        <div class="mb-3 h-8">
+          <img src="https://assets.contentcreatortemplates.com/6ff811f3-cd89-4043-9f34-7866cc5dd6da/assets/prompt-edit-logo-with-name-dark.png" alt="PromptEdit" class="h-full" />
+        </div>
+        <p class="text-smm text-mute-500 max-w-xs">A grocery store for AI. By Paul Xavier International LLC.</p>
+      </div>
+      <div class="text-smm">
+        <p class="font-medium mb-3">Product</p>
+        <ul class="space-y-2 text-mute-500">
+          <li><a href="#tools" class="hover:text-ink">Tools</a></li>
+          <li><a href="#templates" class="hover:text-ink">Templates</a></li>
+          <li><a href="#pricing" class="hover:text-ink">Pricing</a></li>
+          <li><a href="#faq" class="hover:text-ink">FAQ</a></li>
+        </ul>
+      </div>
+      <div class="text-smm">
+        <p class="font-medium mb-3">Legal</p>
+        <ul class="space-y-2 text-mute-500">
+          <li><a href="#" class="hover:text-ink">Terms & conditions</a></li>
+          <li><a href="#" class="hover:text-ink">Privacy policy</a></li>
+          <li><a href="#" class="hover:text-ink">Earnings disclaimer</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-paper-200">
+      <div class="max-w-6xl mx-auto px-6 py-6 text-s text-mute-500 flex flex-wrap items-center justify-between gap-2">
+        <span>© Paul Xavier International LLC. Results shown are not typical.</span>
+        <span>Made for creators.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ───────────── ANIMATIONS · GSAP + Lenis ───────────── -->
+  <script>
+    (function () {
+      if (!window.gsap) return;
+      var ScrollTrigger = window.ScrollTrigger;
+      gsap.registerPlugin(ScrollTrigger);
+
+      var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* ── Smooth scroll (Lenis) ── */
+      var lenis = null;
+      if (window.Lenis && !prefersReduced) {
+        lenis = new Lenis({
+          duration: 1.15,
+          easing: function (t) { return Math.min(1, 1.001 - Math.pow(2, -10 * t)); },
+          smoothWheel: true,
+          smoothTouch: false,
+          wheelMultiplier: 1,
+          touchMultiplier: 1
+        });
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add(function (time) { lenis.raf(time * 1000); });
+        gsap.ticker.lagSmoothing(0);
+
+        // Smooth in-page anchor scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+          a.addEventListener('click', function (e) {
+            var id = a.getAttribute('href');
+            if (id.length > 1) {
+              var target = document.querySelector(id);
+              if (target) { e.preventDefault(); lenis.scrollTo(target, { offset: -64, duration: 1.2 }); }
+            }
+          });
+        });
+      }
+
+      /* ── Hero entrance timeline ──
+         Use fromTo so start/end states are explicit and immune to current-value capture. */
+      var heroEase = 'expo.out';
+      var heroTl = gsap.timeline({ defaults: { ease: heroEase, duration: 1.1 }, delay: 0.15,
+        onStart: function () { document.body.classList.remove('gsap-loading'); }
+      });
+      heroTl
+        .fromTo('[data-hero="badge"]', { y: 16, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.8 })
+        .fromTo('[data-hero="title"]', { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1 }, '-=0.5')
+        .fromTo('[data-hero="lede"]',  { y: 24, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.9 }, '-=0.75')
+        .fromTo('[data-hero="cta"] > *', { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.08, duration: 0.8 }, '-=0.7')
+        .fromTo('[data-hero="trust"] > *', { y: 12, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.06, duration: 0.7 }, '-=0.6')
+        .fromTo('[data-hero-right] > *', { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.12, duration: 1.0 }, '-=1.0')
+        .fromTo('[data-hero-bar]', { scaleX: 0 }, { scaleX: 1, duration: 1.2, ease: 'power3.inOut' }, '-=0.6');
+
+      /* ── Sticky nav: subtle elevation on scroll ── */
+      var header = document.querySelector('header.sticky');
+      if (header) {
+        ScrollTrigger.create({
+          start: 'top -10',
+          onUpdate: function (self) {
+            header.classList.toggle('shadow-soft', self.scroll() > 10);
+          }
+        });
+      }
+
+      /* ── Section reveals: eyebrow + h2 + lede paragraph ── */
+      gsap.utils.toArray('section').forEach(function (section, i) {
+        if (i === 0) return; // hero handled separately
+
+        var eyebrow = section.querySelector('p.text-s.uppercase.tracking-widest');
+        var heading = section.querySelector('h2');
+
+        // Find any lede paragraph: directly after h2, OR a sibling p in the same wrapping flex/grid header
+        var ledes = [];
+        if (heading) {
+          var direct = heading.parentElement.querySelector('h2 + p');
+          if (direct) ledes.push(direct);
+          // Also pick up a paragraph in a sibling column of the heading's header row
+          var headerRow = heading.closest('.flex, .grid');
+          if (headerRow && headerRow !== section) {
+            headerRow.querySelectorAll(':scope > * p').forEach(function (p) {
+              if (p === eyebrow || p === direct) return;
+              if (heading.contains(p)) return;
+              if (p.classList.contains('text-s')) return;
+              ledes.push(p);
+            });
+          }
+        }
+
+        var revealTargets = [eyebrow, heading].concat(ledes).filter(Boolean);
+        if (!revealTargets.length) return;
+
+        gsap.fromTo(revealTargets,
+          { y: 32, autoAlpha: 0 },
+          {
+            y: 0,
+            autoAlpha: 1,
+            duration: 1,
+            ease: 'expo.out',
+            stagger: 0.08,
+            scrollTrigger: {
+              trigger: section,
+              start: 'top 85%',
+              once: true
+            }
+          }
+        );
+      });
+
+      /* ── Stagger grids: any [data-stagger], plus auto-target obvious card grids ── */
+      var staggerGrids = [].slice.call(document.querySelectorAll('[data-stagger]'));
+
+      // Auto-detect card grids (4+ children with rounded backgrounds)
+      document.querySelectorAll('section .grid').forEach(function (grid) {
+        if (staggerGrids.indexOf(grid) !== -1) return;
+        if (grid.closest('[data-hero-right]')) return;
+        if (grid.children.length < 2) return;
+        // Skip the hero col-span grid
+        if (grid.classList.contains('lg:grid-cols-12')) return;
+        staggerGrids.push(grid);
+      });
+
+      staggerGrids.forEach(function (grid) {
+        gsap.fromTo(grid.children,
+          { y: 36, autoAlpha: 0 },
+          {
+            y: 0,
+            autoAlpha: 1,
+            duration: 0.9,
+            ease: 'expo.out',
+            stagger: { each: 0.07, from: 'start' },
+            scrollTrigger: {
+              trigger: grid,
+              start: 'top 90%',
+              once: true
+            }
+          }
+        );
+      });
+
+      /* ── Pricing cards: subtle scale-up on the featured card ── */
+      var featured = document.querySelector('#pricing .bg-paper.text-ink');
+      if (featured) {
+        gsap.fromTo(featured,
+          { y: 50, scale: 0.96, autoAlpha: 0 },
+          {
+            y: 0, scale: 1, autoAlpha: 1,
+            duration: 1.1,
+            ease: 'expo.out',
+            scrollTrigger: { trigger: '#pricing', start: 'top 70%', once: true }
+          }
+        );
+      }
+
+      /* ── Counter animations ── */
+      document.querySelectorAll('[data-count]').forEach(function (el) {
+        var endVal = parseFloat(el.getAttribute('data-count'));
+        if (isNaN(endVal)) return;
+        var prefix = el.getAttribute('data-count-prefix') || '';
+        var suffix = el.getAttribute('data-count-suffix') || '';
+        var format = el.getAttribute('data-count-format') || '';
+        var isDecimal = suffix === '.00';
+        var obj = { v: 0 };
+
+        gsap.to(obj, {
+          v: endVal,
+          duration: 1.8,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+          onUpdate: function () {
+            var val = obj.v;
+            var out;
+            if (isDecimal) {
+              out = val.toFixed(2);
+              el.textContent = prefix + out;
+              return;
+            }
+            if (format === 'comma') {
+              out = Math.round(val).toLocaleString('en-US');
+            } else {
+              out = Math.round(val).toString();
+            }
+            el.textContent = prefix + out + suffix;
+          }
+        });
+      });
+
+      /* ── Magnetic buttons (skip on touch) ── */
+      var isTouch = matchMedia('(hover: none)').matches;
+      if (!isTouch && !prefersReduced) {
+        document.querySelectorAll('.magnetic').forEach(function (btn) {
+          var inner = btn.querySelector('.magnetic-inner') || btn;
+          var bounds = null;
+          var strength = 0.25;
+
+          btn.addEventListener('mouseenter', function () { bounds = btn.getBoundingClientRect(); });
+          btn.addEventListener('mousemove', function (e) {
+            if (!bounds) bounds = btn.getBoundingClientRect();
+            var relX = e.clientX - bounds.left - bounds.width / 2;
+            var relY = e.clientY - bounds.top - bounds.height / 2;
+            gsap.to(btn, { x: relX * strength, y: relY * strength, duration: 0.5, ease: 'power3.out' });
+            gsap.to(inner, { x: relX * strength * 0.5, y: relY * strength * 0.5, duration: 0.5, ease: 'power3.out' });
+          });
+          btn.addEventListener('mouseleave', function () {
+            gsap.to(btn, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.4)' });
+            gsap.to(inner, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.4)' });
+            bounds = null;
+          });
+        });
+      }
+
+      /* ── Parallax: hero right column drifts slightly on scroll ── */
+      if (!prefersReduced) {
+        gsap.to('[data-hero-right]', {
+          yPercent: -8,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: 'section:first-of-type',
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true
+          }
+        });
+      }
+
+      /* ── Hero video: zoom in slightly as the user scrolls past the hero ── */
+      if (!prefersReduced) {
+        gsap.fromTo('[data-hero-video]',
+          { scale: 1 },
+          {
+            scale: 1.4,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: 'section:first-of-type',
+              start: 'top top',
+              end: 'bottom top',
+              scrub: true
+            }
+          }
+        );
+      }
+
+      /* ── Trusted-by image fade-up ── */
+      gsap.fromTo('.marquee img',
+        { autoAlpha: 0, y: 20 },
+        { autoAlpha: 1, y: 0, duration: 1.2, ease: 'expo.out',
+          scrollTrigger: { trigger: '.marquee', start: 'top 90%', once: true } }
+      );
+
+      /* ── FAQ: stagger reveal of details ── */
+      gsap.fromTo('#faq details',
+        { y: 24, autoAlpha: 0 },
+        { y: 0, autoAlpha: 1, duration: 0.8, ease: 'expo.out', stagger: 0.08,
+          scrollTrigger: { trigger: '#faq', start: 'top 80%', once: true } }
+      );
+
+      /* ── Final CTA buttons stagger ── */
+      gsap.fromTo('section.bg-ink.text-paper .mt-8 > *',
+        { y: 18, autoAlpha: 0 },
+        { y: 0, autoAlpha: 1, duration: 0.8, ease: 'expo.out', stagger: 0.08,
+          scrollTrigger: { trigger: 'section.bg-ink.text-paper', start: 'top 80%', once: true } }
+      );
+
+      // Refresh after fonts/images settle so triggers calculate correct positions
+      window.addEventListener('load', function () { ScrollTrigger.refresh(); });
+      ScrollTrigger.refresh();
+    })();
+  </script>
+
+</body>
+</html>
